@@ -1,29 +1,14 @@
-# Node
-node_modules/
-
-# Build files
-dist/
-frontend/dist/
-
-# Media / uploads
-backend/media/
-
-# Python
+k.env
+venv/
+.venv/
 __pycache__/
 *.pyc
-.venv/
-venv/
+node_modules/
+dist/
+build/
+staticfiles/
+media/
+*.log
+*.sqlite3
+*.pemx
 
-# Trained ML model artifacts (regenerated at runtime)
-*.pkl
-
-# Environment
-.env
-
-# Local credential dump (plain-text passwords)
-user.txt
-
-# OS
-.DS_Store
-Thumbs.db
-*.mp4

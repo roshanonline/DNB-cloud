@@ -1,0 +1,144 @@
+========================================================================
+ DIGITAL NOTICE BOARD (DNB / SmartBoard 360) - LOGIN CREDENTIALS
+========================================================================
+ Frontend : http://localhost:3000
+ Backend  : http://localhost:8000/api/     Django admin: http://localhost:8000/admin/
+ Generated: 2026-08-27
+------------------------------------------------------------------------
+ NOTE: Passwords are stored hashed. The values below come from the
+ `initial_password` field (kept in plain text for the dept credential
+ view) and from the seed migrations. Accounts marked [UNVERIFIED] have
+ no stored plain-text password - see "Resetting unknown passwords" at
+ the bottom.
+========================================================================
+
+
+## ADMIN
+------------------------------------------------------------------------
+ username : admin
+ password : admin123
+ role     : ADMIN            (verified working)
+
+
+## DEPARTMENT / HOD ACCOUNTS
+------------------------------------------------------------------------
+ username     password      department   status
+ cse_dept     CSE123        CSE          verified working
+ ece_dept     ECE123        ECE          [UNVERIFIED - guessed from cse_dept pattern]
+ eee_dept     EEE123        EEE          [UNVERIFIED]
+ mech_dept    MECH123       MECH         [UNVERIFIED]
+ civil_dept   CIVIL123      CIVIL        [UNVERIFIED]
+
+
+## STAFF PORTAL  (separate StaffUser table, /api/staff/)
+------------------------------------------------------------------------
+ staff_id : STAFF-CSE-2026-001
+ password : kar@123
+ (from apps/staff/migrations/0002_seed_default_staff.py)
+
+
+## STUDENT ACCOUNTS
+========================================================================
+ Default password for every seeded student : student123
+------------------------------------------------------------------------
+
+ CSE  (Roll 810022104xxx)
+   810022104001  student123   Arjun Sharma
+   810022104002  student123   Priya Nair
+   810022104003  student123   Karthik Rajan
+   810022104004  student123   Divya Menon
+   810022104005  student123   Rahul Verma
+   810022104006  student123   Sneha Pillai
+   810022104007  student123   Arun Kumar
+   810022104008  student123   Lakshmi Suresh
+   810022104009  student123   Vijay Chandran
+   810022104010  student123   Ananya Mohan
+
+ ECE  (Roll 810022105xxx)
+   810022105001  student123   Arjun Sharma
+   810022105002  student123   Priya Nair
+   810022105003  student123   Karthik Rajan
+   810022105004  student123   Divya Menon
+   810022105005  student123   Rahul Verma
+   810022105006  student123   Sneha Pillai
+   810022105007  student123   Arun Kumar
+   810022105008  student123   Lakshmi Suresh
+   810022105009  student123   Vijay Chandran
+   810022105010  student123   Ananya Mohan
+
+ EEE  (Roll 810022106xxx)
+   810022106001  student123   Arjun Sharma
+   810022106002  student123   Priya Nair
+   810022106003  student123   Karthik Rajan
+   810022106004  student123   Divya Menon
+   810022106005  student123   Rahul Verma
+   810022106006  student123   Sneha Pillai
+   810022106007  student123   Arun Kumar
+   810022106008  student123   Lakshmi Suresh
+   810022106009  student123   Vijay Chandran
+   810022106010  student123   Ananya Mohan
+
+ MECH (Roll 810022107xxx)
+   810022107001  student123   Arjun Sharma
+   810022107002  student123   Priya Nair
+   810022107003  student123   Karthik Rajan
+   810022107004  student123   Divya Menon
+   810022107005  student123   Rahul Verma
+   810022107006  student123   Sneha Pillai
+   810022107007  student123   Arun Kumar
+   810022107008  student123   Lakshmi Suresh
+   810022107009  student123   Vijay Chandran
+   810022107010  student123   Ananya Mohan
+
+ CIVIL (Roll 810022108xxx)
+   810022108001  student123   Arjun Sharma
+   810022108002  student123   Priya Nair
+   810022108003  student123   Karthik Rajan
+   810022108004  student123   Divya Menon
+   810022108005  student123   Rahul Verma
+   810022108006  student123   Sneha Pillai
+   810022108007  student123   Arun Kumar
+   810022108008  student123   Lakshmi Suresh
+   810022108009  student123   Vijay Chandran
+   810022108010  student123   Ananya Mohan
+
+ Other student accounts
+   810022104093  nivetha123   Balaji S            (CSE)
+   81002214116   Student123   Kirthick Roshan S   (CSE)
+
+ Demo / test students  [UNVERIFIED - no stored plain-text password]
+   alice               ?    Alice Johnson   (ECE)
+   bob                 ?    Bob Smith       (MECH)
+   charlie             ?    Charlie Brown   (CSE)
+   diana               ?    Diana Prince    (CIVIL)
+   eve                 ?    Eve Wilson      (EEE)
+   student             ?    Roshan Kumar    (CSE)
+   test_student_1styr  ?    First Year      (CSE)
+   test_student_2ndyr  ?    Second Year     (CSE)
+   test_student_3rdyr  ?    Third Year      (CSE)
+   test_student_4thyr  ?    Final Year      (CSE)
+
+
+========================================================================
+ RESETTING UNKNOWN / [UNVERIFIED] PASSWORDS
+========================================================================
+ Run from the backend/ folder to force every account to a known value:
+
+   ../.venv/Scripts/python.exe manage.py shell
+
+ then paste:
+
+   from apps.accounts.models import User
+   for u in User.objects.all():
+       pw = 'admin123' if u.role == 'ADMIN' else \
+            (u.department or 'DEPT') + '123' if u.role == 'DEPARTMENT' else \
+            'student123'
+       u.set_password(pw); u.initial_password = pw; u.save()
+
+ Staff portal reset:
+
+   from apps.staff.models import StaffUser
+   from django.contrib.auth.hashers import make_password
+   StaffUser.objects.filter(staff_id='STAFF-CSE-2026-001').update(
+       password=make_password('kar@123'))
+========================================================================

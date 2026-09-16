@@ -11,6 +11,7 @@ from .views import (
     UserNotificationListView, UserNotificationMarkReadView,
     NoticeAttachmentView,
     StudentNoticesView, StudentNoticeViewIncrement,
+    StudentVideoURLView,
     StaffNoticeCreateView, StaffNoticePendingHodView,
     StaffNoticeApproveHodView, StaffNoticePendingAdminView,
     StaffNoticeApproveAdminView,
@@ -48,6 +49,7 @@ urlpatterns = [
     # ── Student grouped API ───────────────────────────────────────────
     path('student/notices/', StudentNoticesView.as_view(), name='student-notices'),
     path('student/notices/<int:pk>/view/', StudentNoticeViewIncrement.as_view(), name='student-notice-view'),
+    path('student/video-url/', StudentVideoURLView.as_view(), name='student-video-url'),
 
     # ── Staff notices (dept → HOD → admin) ────────────────────────────
     path('staff-notices/', StaffNoticeCreateView.as_view(), name='staff-notice-create'),
@@ -86,3 +88,4 @@ urlpatterns = [
     # POST /api/notices/admin/retrain/
     path('admin/retrain/', RetrainMLView.as_view(), name='retrain-ml'),
 ]
+

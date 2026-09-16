@@ -17,6 +17,7 @@ Endpoints:
 """
 from datetime import date, timedelta
 import os
+import boto3
 from rest_framework import generics, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -164,6 +165,35 @@ def _notify_staff_notice_approved(staff_notice, approved_by):
         message=message,
         notification_type='SYSTEM',
     )
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Student Video
+# ──────────────────────────────────────────────────────────────────────
+
+class StudentVideoURLView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            s3 = boto3.client('s3', region_name='ap-south-1')
+
+            url = s3.generate_presigned_url(
+                'get_object',
+                Params={
+                    'Bucket': 'dnb-student-dashboard',
+                    'Key': 'video.mp4',
+                },
+                ExpiresIn=3600,
+            )
+
+            return Response({'url': url})
+
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -1322,5 +1352,6 @@ class RetrainMLView(APIView):
         results['priority'] = 'weighted-sum formula – no training needed'
 
         return Response({'status': 'done', 'results': results})
+
 
 

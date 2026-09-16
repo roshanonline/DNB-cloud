@@ -26,6 +26,12 @@ const CATEGORY_CONFIG = {
 }
 const getCatCfg = (cat) => CATEGORY_CONFIG[cat] || CATEGORY_CONFIG.General
 
+const sortNotices = (notices = []) => [...notices].sort((a, b) => {
+  const priorityDifference = (Number(b.priority_score) || 0) - (Number(a.priority_score) || 0)
+  if (priorityDifference !== 0) return priorityDifference
+  return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+})
+
 // ── Priority helpers ──────────────────────────────────────────────────
 function priorityGradient(score) {
   if (score >= 0.9) return 'from-red-500 to-rose-600'
@@ -41,7 +47,7 @@ function priorityBg(score) {
 }
 
 // ── Attachment badge helpers ──────────────────────────────────────────
-const MEDIA_BASE = 'http://localhost:8000/media'
+const MEDIA_BASE = '/media'
 
 const AttachBadge = ({ label, colorClass, icon: Icon, href }) => {
   const inner = (
@@ -187,7 +193,7 @@ function NoticeCard({ notice, index, onView }) {
           borderLeft: notice.risk_indicator ? `4px solid ${notice.risk_indicator.color}` : 'none',
         }}
         className={`group bg-white dark:bg-gray-800/90 rounded-3xl shadow-md
-                   cursor-pointer overflow-hidden flex flex-col
+             cursor-pointer overflow-hidden flex flex-col h-full min-h-[620px]
                    ${isDeadlineUrgent
                      ? 'border-2 border-red-400 dark:border-red-500 shadow-red-200/60 dark:shadow-red-900/40'
                      : 'border border-gray-100 dark:border-gray-700/60'
@@ -705,7 +711,7 @@ function NoticeSection({ title, gradientClass, borderClass, badge, icon, notices
         )}
       </div>
       <motion.div
-        className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-7"
+        className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-7 auto-rows-fr"
         initial="hidden"
         animate="visible"
         variants={{
@@ -826,7 +832,7 @@ function SmartSearchResults({ results, query, suggestedCategory, loading, onView
         </div>
       )}
       {results && results.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-7">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-7 auto-rows-fr">
           {results.map((notice, i) => (
             <NoticeCard key={notice.id} notice={notice} index={i} onView={onView} />
           ))}
@@ -840,7 +846,8 @@ function SmartSearchResults({ results, query, suggestedCategory, loading, onView
 function RecommendedSection({ notices, onView }) {
   if (!notices || notices.length === 0) return null
   const [showAll, setShowAll] = useState(false)
-  const display = showAll ? notices : notices.slice(0, 6)
+  const orderedNotices = sortNotices(notices)
+  const display = showAll ? orderedNotices : orderedNotices.slice(0, 6)
   return (
     <section className="mb-14">
       <div className="flex items-center justify-between mb-6">
@@ -867,7 +874,7 @@ function RecommendedSection({ notices, onView }) {
           </button>
         )}
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-7">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-7 auto-rows-fr">
         {display.map((notice, i) => (
           <NoticeCard key={notice.id} notice={notice} index={i} onView={onView} />
         ))}
@@ -891,7 +898,9 @@ const StudentDashboard = () => {
   const [semanticLoading, setSemanticLoading] = useState(false)
   const [showMLInfo, setShowMLInfo] = useState(false)  // toggle ML info panel
   const [notificationNotice, setNotificationNotice] = useState(null)  // Notice from notification click
-
+  const [videoUrl, setVideoUrl] = useState(null)
+  const [videoLoading, setVideoLoading] = useState(true)
+  const [videoError, setVideoError] = useState(null)
   const CATEGORIES = [
     { id: 'all',         label: 'All' },
     { id: 'Exam',        label: '📝 Exams' },
@@ -947,15 +956,15 @@ const StudentDashboard = () => {
   }, [])
 
   // ── Keyword search (by title) ──────────────────────────────────────
-  const keywordSearchResults = keywordSearchQuery.trim() 
-    ? (data?.your_department || [])
+  const keywordSearchResults = keywordSearchQuery.trim()
+    ? sortNotices((data?.your_department || [])
         .concat(data?.institution || [])
         .concat(data?.other_departments || [])
         .filter(notice => 
           notice.title.toLowerCase().includes(keywordSearchQuery.toLowerCase()) ||
           (notice.description || '').toLowerCase().includes(keywordSearchQuery.toLowerCase())
         )
-        .slice(0, 20)
+        .slice(0, 20))
     : []
 
   // ── Handle notification click: open modal with notice details ────────
@@ -970,6 +979,25 @@ const StudentDashboard = () => {
 
   useEffect(() => { fetchData() }, [fetchData])
   useEffect(() => { fetchMLData() }, [fetchMLData])
+
+  useEffect(() => {
+    let cancelled = false
+
+    const fetchVideoUrl = async () => {
+      try {
+        const { data: res } = await api.get('/notices/student/video-url/')
+        if (!cancelled) setVideoUrl(res.url)
+      } catch (err) {
+        console.error('Video URL fetch error:', err)
+        if (!cancelled) setVideoError('Unable to load the featured video.')
+      } finally {
+        if (!cancelled) setVideoLoading(false)
+      }
+    }
+
+    fetchVideoUrl()
+    return () => { cancelled = true }
+  }, [])
 
   // Real-time: re-fetch whenever any notice changes
   useEffect(() => {
@@ -1013,15 +1041,51 @@ const StudentDashboard = () => {
   }
 
   const totals = data?.totals || {}
-  const yourDept = data?.your_department || []
-  const institution = data?.institution || []
-  const otherDepts = data?.other_departments || []
+  const yourDept = sortNotices(data?.your_department)
+  const institution = sortNotices(data?.institution)
+  const otherDepts = sortNotices(data?.other_departments)
 
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-gray-950">
       <Navbar onNotificationClick={handleNotificationClick} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        {/* Featured video is the first dashboard content below the navbar. */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="w-full bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden border border-gray-100 dark:border-gray-700 mb-8"
+        >
+          <div className="bg-gradient-to-r from-indigo-500 to-blue-600 px-5 py-4 flex items-center gap-3">
+            <Video className="w-5 h-5 text-white" />
+            <div>
+              <h3 className="text-white font-bold text-sm">Featured Video</h3>
+              <p className="text-blue-100 text-xs">SmartBoard 360</p>
+            </div>
+          </div>
+          <div className="bg-gray-900 w-full aspect-video flex items-center justify-center relative overflow-hidden">
+            {videoLoading ? (
+              <p className="text-gray-400 text-sm">Loading video...</p>
+            ) : videoError ? (
+              <p className="text-gray-400 text-sm">{videoError}</p>
+            ) : (
+              <video
+                controls
+                autoPlay
+                muted
+                loop
+                playsInline
+                width="100%"
+                src={videoUrl}
+                className="w-full h-full object-contain"
+              >
+                Your browser does not support the video tag.
+              </video>
+            )}
+          </div>
+        </motion.div>
 
         {/* ── Hero Header ── */}
         <div className="relative bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-500 rounded-3xl p-7 mb-8 overflow-hidden shadow-xl">
@@ -1146,7 +1210,7 @@ const StudentDashboard = () => {
             </div>
             
             {keywordSearchResults.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-7">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-7 auto-rows-fr">
                 {keywordSearchResults.map((notice, i) => (
                   <NoticeCard key={notice.id} notice={notice} index={i} onView={handleViewIncrement} />
                 ))}
@@ -1182,7 +1246,7 @@ const StudentDashboard = () => {
         {/* ── SVD Matrix Factorization: Recommended for You (shown when NOT searching) ── */}
         {!keywordSearchQuery && !semanticSearchQuery && (
           <RecommendedSection
-            notices={mlData?.recommended_for_you || []}
+            notices={sortNotices(mlData?.recommended_for_you)}
             onView={handleViewIncrement}
           />
         )}
@@ -1235,7 +1299,7 @@ const StudentDashboard = () => {
                 {/* Modal Content - Notice Detail View */}
                 {(() => {
                   const cfg = getCatCfg(notificationNotice.category)
-                  const thumbSrc = notificationNotice.image_file ? `http://localhost:8000/media/${notificationNotice.image_file}` : undefined
+                  const thumbSrc = notificationNotice.image_file ? `/media/${notificationNotice.image_file}` : undefined
                   
                   return (
                     <>
@@ -1316,3 +1380,4 @@ const StudentDashboard = () => {
 }
 
 export default StudentDashboard
+
